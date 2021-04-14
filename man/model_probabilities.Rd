@@ -2,24 +2,18 @@
 % Please edit documentation in R/ppi_calcs.R
 \name{model_probabilities}
 \alias{model_probabilities}
-\title{Calculate posterior pobabilities of inclusion based on PDMP trajectories}
+\title{Calculate posterior probabilities of inclusion based on PDMP trajectories}
 \usage{
-model_probabilities(
-  times,
-  positions,
-  models = NULL,
-  marginals = NULL,
-  burnin = 1
-)
+model_probabilities(times, thetas, models = NULL, marginals = NULL, burnin = 1)
 }
 \arguments{
 \item{times}{Vector of event times from the PDMP trajectory}
 
-\item{positions}{Matrix of positions from the PDMP trajectory, each column should correspond to a position}
+\item{thetas}{Matrix of velocities from the PDMP trajectory, each column should correspond to a velocities}
 
-\item{models}{Optional Matrix of indicies where rows correspond to models. Will return proabilities of each model \code{prob_mod}.}
+\item{models}{Optional Matrix of indicies where rows correspond to models. Will return probabilities of each model \code{prob_mod}.}
 
-\item{marginals}{Optional Vector of indices to calculate the marginal probabilities of inclusion. Will return proabilities of inclusion for variable index \code{marginal_prob}.}
+\item{marginals}{Optional Vector of indices to calculate the marginal probabilities of inclusion. Will return probabilities of inclusion for variable index \code{marginal_prob}.}
 
 \item{burnin}{Number of events to use as burnin}
 }
@@ -55,12 +49,14 @@ ppi <- 2/p
 zigzag_fit <- zigzag_logit(maxTime = 1, dataX = data$dataX, datay = data$dataY,
                            prior_sigma2 = 10,theta0 = rep(0, p), x0 = rep(0, p), rj_val = 0.6,
                            ppi = ppi)
+\dontrun{
 a <- models_visited(zigzag_fit$theta)
 
 # Work out probability of top 10 most visited models and all marginal inclusion probabilities
 # specific model probabilities become trivially small for large dimensions
-b <- model_probabilities(zigzag_fit$times, zigzag_fit$positions,
+b <- model_probabilities(zigzag_fit$times, zigzag_fit$theta,
                          models = a[1:10,1:p], marginals=1:p)
+}
 
 
 }

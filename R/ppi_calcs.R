@@ -1,11 +1,11 @@
-#' Calculate posterior pobabilities of inclusion based on PDMP trajectories
+#' Calculate posterior probabilities of inclusion based on PDMP trajectories
 #'
 #' Calculate either marginal probabilities of inclusions or posterior probabilities of specific models.
 #'
 #' @param times Vector of event times from the PDMP trajectory
-#' @param positions Matrix of positions from the PDMP trajectory, each column should correspond to a position
-#' @param models Optional Matrix of indicies where rows correspond to models. Will return proabilities of each model \code{prob_mod}.
-#' @param marginals Optional Vector of indices to calculate the marginal probabilities of inclusion. Will return proabilities of inclusion for variable index \code{marginal_prob}.
+#' @param thetas Matrix of velocities from the PDMP trajectory, each column should correspond to a velocities
+#' @param models Optional Matrix of indicies where rows correspond to models. Will return probabilities of each model \code{prob_mod}.
+#' @param marginals Optional Vector of indices to calculate the marginal probabilities of inclusion. Will return probabilities of inclusion for variable index \code{marginal_prob}.
 #' @param burnin Number of events to use as burnin
 #' @return Returns a list with the following objects:
 #' @return \code{prob_mod}: Vector of posterior model probabilities based on the PDMP trajectories
@@ -32,15 +32,17 @@
 #' zigzag_fit <- zigzag_logit(maxTime = 1, dataX = data$dataX, datay = data$dataY,
 #'                            prior_sigma2 = 10,theta0 = rep(0, p), x0 = rep(0, p), rj_val = 0.6,
 #'                            ppi = ppi)
+#' \dontrun{
 #' a <- models_visited(zigzag_fit$theta)
 #'
 #' # Work out probability of top 10 most visited models and all marginal inclusion probabilities
 #' # specific model probabilities become trivially small for large dimensions
-#' b <- model_probabilities(zigzag_fit$times, zigzag_fit$positions,
+#' b <- model_probabilities(zigzag_fit$times, zigzag_fit$theta,
 #'                          models = a[1:10,1:p], marginals=1:p)
+#' }
 #'
 #'
-model_probabilities <- function(times, positions, models = NULL, marginals = NULL, burnin = 1){
+model_probabilities <- function(times, thetas, models = NULL, marginals = NULL, burnin = 1){
   eps = 1e-12
   ## Calculate model probabilities
   prob_mod <- NULL
@@ -51,15 +53,23 @@ model_probabilities <- function(times, positions, models = NULL, marginals = NUL
     nMod <- nrow(models)
     prob_mod <- rep(0,nMod)
     for( Mi in 1:nMod ){
-      ZeroInds <- which( abs(models[Mi,]) < eps )
-      t_dirac = 0
+      t_in_model = 0
+      in_model <- FALSE
+      t_at_model <- 0
       for(i in burnin:(length(times)-1)){
-        if(all(abs(positions[-ZeroInds,i]) > eps) && all(abs(positions[ZeroInds,i]) < eps) &&
-           all(positions[ZeroInds,i+1] ==0) && all(abs(positions[-ZeroInds,i+1]) > 0) ){
-          t_dirac = t_dirac + times[i+1] - times[i]
+        if(all(abs(abs(thetas[,i]) - abs(models[Mi,])) < eps) & !(in_model)){
+          t_at_model <- times[i]
+          in_model <- TRUE
+        }
+        if(!all(abs(abs(thetas[,i]) - abs(models[Mi,])) < eps) & (in_model)){
+          t_in_model <- t_in_model + (times[i] - t_at_model)
+          in_model <- FALSE
         }
       }
-      prob_mod[Mi] <- t_dirac/(max(times)-times[burnin])
+      if(in_model){
+        t_in_model <- t_in_model + (times[i] - t_at_model)
+      }
+      prob_mod[Mi] <- exp(log(t_in_model) - log(max(times)-times[burnin]))
     }
     names(prob_mod) <- apply(models,1,function(s) paste(s, collapse = ''))
   }
@@ -72,7 +82,7 @@ model_probabilities <- function(times, positions, models = NULL, marginals = NUL
       ZeroInds <- marginals[Mi]
       t_dirac <- 0
       for(i in burnin:(length(times)-1)){
-        if( positions[ZeroInds,i] == 0 && positions[ZeroInds,i+1] == 0 ){
+        if( thetas[ZeroInds,i] == 0 && thetas[ZeroInds,i+1] == 0 ){
           t_dirac = t_dirac + times[i+1] - times[i]
         }
       }
@@ -80,7 +90,7 @@ model_probabilities <- function(times, positions, models = NULL, marginals = NUL
     }
     names(marginal_prob_inclusion) <- marginals
   }
-  return(list(prob_mod = prob_mod, marginal_prob = marginal_prob_inclusion))
+  return(list(prob_mod = sort(prob_mod,decreasing = T), marginal_prob = marginal_prob_inclusion))
 }
 
 #' Count the number of times a model is visited
@@ -109,7 +119,9 @@ model_probabilities <- function(times, positions, models = NULL, marginals = NUL
 #' zigzag_fit <- zigzag_logit(maxTime = 1, dataX = data$dataX, datay = data$dataY,
 #'                            prior_sigma2 = 10,theta0 = rep(0, p), x0 = rep(0, p),
 #'                            rj_val = 0.6, ppi = ppi)
+#' \dontrun{
 #' models_visited(zigzag_fit$theta)
+#' }
 #'
 models_visited <- function(thetas){
   . <- NULL # necessity for data.table package dependency
@@ -151,7 +163,9 @@ models_visited <- function(thetas){
 #' zigzag_fit <- zigzag_logit(maxTime = 1, dataX = data$dataX, datay = data$dataY,
 #'                            prior_sigma2 = 10,theta0 = rep(0, p), x0 = rep(0, p), rj_val = 0.6,
 #'                            ppi = ppi)
+#' \dontrun{
 #' b <- marginal_mean(zigzag_fit$times, zigzag_fit$positions, zigzag_fit$theta, marginals=1:p)
+#' }
 #'
 marginal_mean <- function(times, positions, thetas, marginals = NULL, burnin = 1){
   ## Calc Marginal
@@ -205,11 +219,13 @@ marginal_mean <- function(times, positions, thetas, marginals = NULL, burnin = 1
 #' zigzag_fit <- zigzag_logit(maxTime = 1, dataX = data$dataX, datay = data$dataY,
 #'                            prior_sigma2 = 10,theta0 = rep(0, p), x0 = rep(0, p), rj_val = 0.6,
 #'                            ppi = ppi)
+#' \dontrun{
 #' b <- cond_mean(zigzag_fit$times, zigzag_fit$positions, zigzag_fit$theta, theta_c = c(1,rep(0,p-1)))
+#' }
 #'
 cond_mean <- function(times, positions, thetas, theta_c, burnin = 1){
   eps = 1e-12
-  nonZeroindicies <- which(abs(theta_c) <1e-10)
+  nonZeroindicies <- which(abs(theta_c) >1e-10)
   nZ <- length(nonZeroindicies)
   maxIter <- length(times)
   cond_mean <- rep(0, nZ)

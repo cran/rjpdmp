@@ -18,7 +18,7 @@
 //' @param ref Double for the refreshment rate of the BPS.
 //' @param rj_val Reversible jump parameter for the PDMP method. This value is fixed over all models and is interpreted as the probability to jump to a reduced model when a parameter hits zero.
 //' @param ppi Double for the prior probability of inclusion (ppi) for each parameter.
-//' @param nmax Maximum number of iterations (simulated events) of the algorithm; will stop the algorithm when this number of iterations of the method have occured. Default value is 10^6, lower values should be chosen for memory constraints if less iterations are desired.
+//' @param nmax Maximum number of iterations (simulated events) of the algorithm; will stop the algorithm when this number of iterations of the method have occured. Default value is 1e6, lower values should be chosen for memory constraints if less iterations are desired.
 //' @param burn Optional number of iterations to use for burnin. These are not stored so can be useful in memory intensive problems.
 //' @return Returns a list with the following objects:
 //' @return \code{times}: Vector of event times where ZigZag process switchs velocity or jumps models.
@@ -47,21 +47,21 @@
 //' bps_fit <- bps_n_logit(maxTime = 1, dataX = data$dataX, datay = data$dataY,
 //'                           prior_sigma2 = 10, theta0 = rep(0, p),
 //'                           x0 = rep(0, p), ref = 0.1, rj_val = 0.6,
-//'                           ppi = ppi)
+//'                           ppi = ppi, nmax = 1e6, burn = -1)
 //'
 //' gibbs_fit <- gibbs_logit(maxTime = 1, dataX = data$dataX, datay =data$dataY,
 //'                          prior_sigma2 = 10,beta = rep(0,p), gamma =rep(0,p),
 //'                          ppi = ppi)
-//'
-//' plot_pdmp(bps_fit, coords = 1:2, inds = 1:10^3,burn = .1, nsamples = 1e4,
+//'\dontrun{
+//' plot_pdmp(bps_fit, coords = 1:2, inds = 1:1e3,burn = .1, nsamples = 1e4,
 //'           mcmc_samples = t(gibbs_fit$beta*gibbs_fit$gamma))
-//'
+//'}
 //' @export
 // [[Rcpp::export]]
 List bps_n_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
                   double prior_sigma2, arma::vec x0, arma::vec theta0,
                   double ref = 0.1, double rj_val = 0.6,
-                  double ppi=0.5, int nmax = 10^6, int burn = -1){
+                  double ppi=0.5, int nmax = 1e6, int burn = -1){
 
   int p = x0.size(), nEvent= 1;
   double eps = 1e-10, epsbig = 0.5, t = 0, upper, val, tau_val, alpha;
@@ -94,12 +94,17 @@ List bps_n_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
   arma::mat Hess = 0.25*dataX.t()*dataX;
   Hess.diag() += 1.0/prior_sigma2;
 
-  ab_vals(0) = arma::dot(grad_vals, theta);
-  ab_vals(1) = arma::dot(Hess*theta, theta);
-
   taus.elem(inds_off_hp) = get_hit_times(x.elem(inds_off_hp),theta.elem(inds_off_hp));
   taus.elem(inds_on_hp) = bps_MP_GaussIID_N(theta, rj_val, ppi, prior_sigma2);
-  taus(p) = linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
+  // if all inds are set to zero
+  int number_off = inds_off_hp.size();
+  if(number_off < 1){
+    taus(p) = R_PosInf;
+  } else {
+    ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
+    ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
+    taus(p) = linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
+    }
   taus(p+1) = R::rexp(1)/ref;
 
   // Rcout << " as ";
@@ -205,12 +210,18 @@ List bps_n_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
       break;
     }
 
-    ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
-    ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
+    // if all inds are set to zero
+    number_off = inds_off_hp.size();
+    if(number_off < 1){
+      taus(p) = R_PosInf;
+    } else {
+      ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
+      ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
+      taus(p) = t + linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
+    }
 
     taus.elem(inds_off_hp) = t + get_hit_times(x.elem(inds_off_hp),theta.elem(inds_off_hp));
     taus.elem(inds_on_hp) = t + bps_MP_GaussIID_N(theta, rj_val, ppi, prior_sigma2);
-    taus(p) = t + linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
     taus(p+1) = t + R::rexp(1)/ref;
   }
   sk_times -= sk_times(0);
@@ -236,7 +247,7 @@ List bps_n_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
 //' @param ref Double for the refreshment rate of the BPS.
 //' @param rj_val Reversible jump parameter for the PDMP method. This value is fixed over all models and is interpreted as the probability to jump to a reduced model when a parameter hits zero.
 //' @param ppi Double for the prior probability of inclusion (ppi) for each parameter.
-//' @param nmax Maximum number of iterations (simulated events) of the algorithm; will stop the algorithm when this number of iterations of the method have occured. Default value is 10^6, lower values should be chosen for memory constraints if less iterations are desired.
+//' @param nmax Maximum number of iterations (simulated events) of the algorithm; will stop the algorithm when this number of iterations of the method have occured. Default value is 1e6, lower values should be chosen for memory constraints if less iterations are desired.
 //' @param burn Optional number of iterations to use for burnin. These are not stored so can be useful in memory intensive problems.
 //' @return Returns a list with the following objects:
 //' @return \code{times}: Vector of event times where ZigZag process switchs velocity or jumps models.
@@ -262,6 +273,7 @@ List bps_n_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
 //' data <- generate.logistic.data(beta, n, solve(Siginv))
 //' ppi <- 2/p
 //'
+//'
 //' bps_fit <- bps_s_logit(maxTime = 1, dataX = data$dataX, datay = data$dataY,
 //'                        prior_sigma2 = 10, theta0 = rep(0, p),
 //'                        x0 = rep(0, p), ref = 0.1, rj_val = 0.6,
@@ -270,16 +282,16 @@ List bps_n_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
 //' gibbs_fit <- gibbs_logit(maxTime = 1, dataX = data$dataX, datay =data$dataY,
 //'                          prior_sigma2 = 10,beta = rep(0,p), gamma =rep(0,p),
 //'                          ppi = ppi)
-//'
-//' plot_pdmp(bps_fit, coords = 1:2, inds = 1:10^4,burn = .1, nsamples = 1e4,
+//'\dontrun{
+//' plot_pdmp(bps_fit, coords = 1:2, inds = 1:1e4,burn = .1, nsamples = 1e4,
 //'           mcmc_samples = t(gibbs_fit$beta*gibbs_fit$gamma))
-//'
+//'}
 //' @export
 // [[Rcpp::export]]
 List bps_s_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
                  double prior_sigma2, arma::vec x0, arma::vec theta0,
                  double ref = 0.01, double rj_val = 0.6,
-                 double ppi=0.5, int nmax = 10^6, int burn = -1){
+                 double ppi=0.5, int nmax = 1e6, int burn = -1){
 
   int p = x0.size(), nEvent= 1;
   double eps = 1e-10, epsbig = 0.5, t = 0, upper, val, tau_val, alpha;
@@ -316,12 +328,17 @@ List bps_s_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
   arma::mat Hess = 0.25*dataX.t()*dataX;
   Hess.diag() += 1.0/prior_sigma2;
 
-  ab_vals(0) = arma::dot(grad_vals, theta);
-  ab_vals(1) = arma::dot(Hess*theta, theta);
-
   taus.elem(inds_off_hp) = get_hit_times(x.elem(inds_off_hp),theta.elem(inds_off_hp));
   taus.elem(inds_on_hp) = bps_MP_GaussIID_S(theta, rj_val, ppi, prior_sigma2);
-  taus(p) = linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
+  // if all inds are set to zero
+  int number_off = inds_off_hp.size();
+  if(number_off < 1){
+    taus(p) = R_PosInf;
+  } else {
+    ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
+    ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
+    taus(p) = linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
+  }
   taus(p+1) = R::rexp(1)/ref;
 
   // Rcout << " as ";
@@ -436,12 +453,16 @@ List bps_s_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
       break;
     }
 
-    ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
-    ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
-
+    number_off = inds_off_hp.size();
+    if(number_off < 1){
+      taus(p) = R_PosInf;
+    } else {
+      ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
+      ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
+      taus(p) = t + linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
+    }
     taus.elem(inds_off_hp) = t + get_hit_times(x.elem(inds_off_hp),theta.elem(inds_off_hp));
     taus.elem(inds_on_hp) = t + bps_MP_GaussIID_S(theta, rj_val, ppi, prior_sigma2);
-    taus(p) = t + linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
     taus(p+1) = t + R::rexp(1)/ref;
   }
   sk_times -= sk_times(0);

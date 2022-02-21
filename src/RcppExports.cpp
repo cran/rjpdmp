@@ -6,6 +6,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // bps_n_logit
 List bps_n_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay, double prior_sigma2, arma::vec x0, arma::vec theta0, double ref, double rj_val, double ppi, int nmax, int burn);
 RcppExport SEXP _rjpdmp_bps_n_logit(SEXP maxTimeSEXP, SEXP dataXSEXP, SEXP dataySEXP, SEXP prior_sigma2SEXP, SEXP x0SEXP, SEXP theta0SEXP, SEXP refSEXP, SEXP rj_valSEXP, SEXP ppiSEXP, SEXP nmaxSEXP, SEXP burnSEXP) {

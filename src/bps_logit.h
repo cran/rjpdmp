@@ -43,7 +43,7 @@
 //' set.seed(1)
 //' data <- generate.logistic.data(beta, n, solve(Siginv))
 //' ppi <- 2/p
-//'
+//'\dontrun{
 //' bps_fit <- bps_n_logit(maxTime = 1, dataX = data$dataX, datay = data$dataY,
 //'                           prior_sigma2 = 10, theta0 = rep(0, p),
 //'                           x0 = rep(0, p), ref = 0.1, rj_val = 0.6,
@@ -52,7 +52,7 @@
 //' gibbs_fit <- gibbs_logit(maxTime = 1, dataX = data$dataX, datay =data$dataY,
 //'                          prior_sigma2 = 10,beta = rep(0,p), gamma =rep(0,p),
 //'                          ppi = ppi)
-//'\dontrun{
+//'
 //' plot_pdmp(bps_fit, coords = 1:2, inds = 1:1e3,burn = .1, nsamples = 1e4,
 //'           mcmc_samples = t(gibbs_fit$beta*gibbs_fit$gamma))
 //'}
@@ -94,17 +94,12 @@ List bps_n_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
   arma::mat Hess = 0.25*dataX.t()*dataX;
   Hess.diag() += 1.0/prior_sigma2;
 
+  ab_vals(0) = arma::dot(grad_vals, theta);
+  ab_vals(1) = arma::dot(Hess*theta, theta);
+
   taus.elem(inds_off_hp) = get_hit_times(x.elem(inds_off_hp),theta.elem(inds_off_hp));
   taus.elem(inds_on_hp) = bps_MP_GaussIID_N(theta, rj_val, ppi, prior_sigma2);
-  // if all inds are set to zero
-  int number_off = inds_off_hp.size();
-  if(number_off < 1){
-    taus(p) = R_PosInf;
-  } else {
-    ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
-    ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
-    taus(p) = linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
-    }
+  taus(p) = linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
   taus(p+1) = R::rexp(1)/ref;
 
   // Rcout << " as ";
@@ -210,18 +205,12 @@ List bps_n_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
       break;
     }
 
-    // if all inds are set to zero
-    number_off = inds_off_hp.size();
-    if(number_off < 1){
-      taus(p) = R_PosInf;
-    } else {
-      ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
-      ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
-      taus(p) = t + linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
-    }
+    ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
+    ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
 
     taus.elem(inds_off_hp) = t + get_hit_times(x.elem(inds_off_hp),theta.elem(inds_off_hp));
     taus.elem(inds_on_hp) = t + bps_MP_GaussIID_N(theta, rj_val, ppi, prior_sigma2);
+    taus(p) = t + linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
     taus(p+1) = t + R::rexp(1)/ref;
   }
   sk_times -= sk_times(0);
@@ -273,7 +262,7 @@ List bps_n_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
 //' data <- generate.logistic.data(beta, n, solve(Siginv))
 //' ppi <- 2/p
 //'
-//'
+//'\dontrun{
 //' bps_fit <- bps_s_logit(maxTime = 1, dataX = data$dataX, datay = data$dataY,
 //'                        prior_sigma2 = 10, theta0 = rep(0, p),
 //'                        x0 = rep(0, p), ref = 0.1, rj_val = 0.6,
@@ -282,7 +271,7 @@ List bps_n_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
 //' gibbs_fit <- gibbs_logit(maxTime = 1, dataX = data$dataX, datay =data$dataY,
 //'                          prior_sigma2 = 10,beta = rep(0,p), gamma =rep(0,p),
 //'                          ppi = ppi)
-//'\dontrun{
+//'
 //' plot_pdmp(bps_fit, coords = 1:2, inds = 1:1e4,burn = .1, nsamples = 1e4,
 //'           mcmc_samples = t(gibbs_fit$beta*gibbs_fit$gamma))
 //'}
@@ -328,17 +317,12 @@ List bps_s_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
   arma::mat Hess = 0.25*dataX.t()*dataX;
   Hess.diag() += 1.0/prior_sigma2;
 
+  ab_vals(0) = arma::dot(grad_vals, theta);
+  ab_vals(1) = arma::dot(Hess*theta, theta);
+
   taus.elem(inds_off_hp) = get_hit_times(x.elem(inds_off_hp),theta.elem(inds_off_hp));
   taus.elem(inds_on_hp) = bps_MP_GaussIID_S(theta, rj_val, ppi, prior_sigma2);
-  // if all inds are set to zero
-  int number_off = inds_off_hp.size();
-  if(number_off < 1){
-    taus(p) = R_PosInf;
-  } else {
-    ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
-    ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
-    taus(p) = linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
-  }
+  taus(p) = linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
   taus(p+1) = R::rexp(1)/ref;
 
   // Rcout << " as ";
@@ -453,16 +437,12 @@ List bps_s_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay,
       break;
     }
 
-    number_off = inds_off_hp.size();
-    if(number_off < 1){
-      taus(p) = R_PosInf;
-    } else {
-      ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
-      ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
-      taus(p) = t + linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
-    }
+    ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
+    ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
+
     taus.elem(inds_off_hp) = t + get_hit_times(x.elem(inds_off_hp),theta.elem(inds_off_hp));
     taus.elem(inds_on_hp) = t + bps_MP_GaussIID_S(theta, rj_val, ppi, prior_sigma2);
+    taus(p) = t + linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
     taus(p+1) = t + R::rexp(1)/ref;
   }
   sk_times -= sk_times(0);

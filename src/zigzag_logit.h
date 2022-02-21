@@ -65,9 +65,9 @@ List zigzag_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay
   double eps = 1e-10, t = 0, upper, val, tau_val;
 
   arma::mat ab_vals(p,2), sk_points(p,nmax), sk_theta(p,nmax);
-  arma::vec sk_times(nmax), theta = theta0, taus(p), x = x0, grad_val(1);
+  arma::vec sk_times(nmax), theta = theta0, taus(p), x = x0, grad_val(1), clock_times(nmax);
 
-  taus.zeros(); ab_vals.zeros(); sk_times.zeros();
+  taus.zeros(); ab_vals.zeros(); sk_times.zeros(), clock_times.zeros();
   if( burn < 0){
     burn = 0;
     sk_points.col(0) = x0; sk_theta.col(0) = theta;
@@ -114,6 +114,7 @@ List zigzag_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay
         theta[mini] = 2.0*(R::runif(0,1) < 0.5) - 1;
         Xtheta += dataX.col(mini)*theta(mini);
         if( nEvent >= burn){
+          clock_times(nEvent-burn) = timer.toc();
           sk_times(nEvent-burn) = t;
           sk_points.col(nEvent-burn) = x;
           sk_theta.col(nEvent-burn) = theta;
@@ -126,6 +127,7 @@ List zigzag_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay
           Xtheta -= dataX.col(mini)*theta(mini);
           theta[mini] = 0;
           if( nEvent >= burn){
+            clock_times(nEvent-burn) = timer.toc();
             sk_times(nEvent-burn) = t;
             sk_points.col(nEvent-burn) = x;
             sk_theta.col(nEvent-burn) = theta;
@@ -154,6 +156,7 @@ List zigzag_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay
         Xtheta -= 2*dataX.col(mini)*theta(mini);
         theta(mini) = -theta(mini);
         if( nEvent >= burn){
+          clock_times(nEvent-burn) = timer.toc();
           sk_times(nEvent-burn) = t;
           sk_points.col(nEvent-burn) = x;
           sk_theta.col(nEvent-burn) = theta;
@@ -171,9 +174,11 @@ List zigzag_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay
       if(nEvent < burn){
         Rcout << "Sampler still in burnin phase - set a longer runtime" << std::endl;
       } else {
+        clock_times(nEvent-burn) = timer.toc();
         sk_points.shed_cols(nEvent-burn, nmax-1);
         sk_theta.shed_cols(nEvent-burn, nmax-1);
         sk_times.shed_rows(nEvent-burn, nmax-1);
+        clock_times.shed_rows(nEvent-burn, nmax-1);
       }
       break;
     }
@@ -187,6 +192,7 @@ List zigzag_logit(double maxTime, const arma::mat& dataX, const arma::vec& datay
   ret["times"] = sk_times ;
   ret["positions"] = sk_points ;
   ret["theta"] = sk_theta ;
+  ret["clock"] = clock_times ;
   return(ret) ;
 }
 
@@ -239,7 +245,7 @@ bool check_cv(arma::uvec inds_off_hp_cv, arma::uvec inds_off_hp){
 //' data <- generate.logistic.data(beta, n, solve(Siginv))
 //' ppi <- 2/p
 //'
-//'
+//'\dontrun{
 //' zigzag_fit <- zigzag_logit(maxTime = 1, dataX = data$dataX,
 //'                            datay = data$dataY, prior_sigma2 = 10,
 //'                            theta0 = rep(0, p), x0 = rep(0, p), rj_val = 0.6,
@@ -254,7 +260,7 @@ bool check_cv(arma::uvec inds_off_hp_cv, arma::uvec inds_off_hp){
 //' gibbs_fit <- gibbs_logit(maxTime = 1, dataX = data$dataX, datay =data$dataY,
 //'                          prior_sigma2 = 10,beta = rep(0,p), gamma =rep(0,p),
 //'                          ppi = ppi)
-//'\dontrun{
+//'
 //' plot_pdmp_multiple(list(zigzag_fit,zigzag_fit_s), coords = 1:2, burn = .1,
 //'                    inds = 1:1e2, nsamples = 1e4,
 //'                    mcmc_samples = t(gibbs_fit$beta*gibbs_fit$gamma))

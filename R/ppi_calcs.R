@@ -37,31 +37,35 @@
 #'
 #' # Work out probability of top 10 most visited models and all marginal inclusion probabilities
 #' # specific model probabilities become trivially small for large dimensions
-#' b <- model_probabilities(zigzag_fit$times, zigzag_fit$theta,
+#' b <- model_probabilities(zigzag_fit$times, zigzag_fit$thetas,
 #'                          models = a[1:10,1:p], marginals=1:p)
 #' }
 #'
 #'
 model_probabilities <- function(times, thetas, models = NULL, marginals = NULL, burnin = 1){
   eps = 1e-12
+  thetas <- abs(thetas) > eps
+
   ## Calculate model probabilities
   prob_mod <- NULL
   if(!is.null(models)){
     if(is.null(nrow(models))){
       models <- matrix(models, nrow = 1)
     }
+    models <- abs(models)
     nMod <- nrow(models)
     prob_mod <- rep(0,nMod)
     for( Mi in 1:nMod ){
       t_in_model = 0
-      in_model <- FALSE
-      t_at_model <- 0
-      for(i in burnin:(length(times)-1)){
-        if(all(abs(abs(thetas[,i]) - abs(models[Mi,])) < eps) & !(in_model)){
+      in_model <- all(abs(thetas[,burnin] - models[Mi,]) < eps)
+      t_at_model <- if(in_model) times[burnin] else 0
+
+      for(i in burnin:(length(times))){
+        if(all(abs(thetas[,i] - models[Mi,]) < eps) & !(in_model)){
           t_at_model <- times[i]
           in_model <- TRUE
         }
-        if(!all(abs(abs(thetas[,i]) - abs(models[Mi,])) < eps) & (in_model)){
+        if(!all(abs(thetas[,i] - models[Mi,]) < eps) & (in_model)){
           t_in_model <- t_in_model + (times[i] - t_at_model)
           in_model <- FALSE
         }
@@ -79,19 +83,31 @@ model_probabilities <- function(times, thetas, models = NULL, marginals = NULL, 
   marginal_prob_inclusion <- rep(0, nMI)
   if(!is.null(marginals)){
     for( Mi in 1:nMI){
-      ZeroInds <- marginals[Mi]
-      t_dirac <- 0
-      for(i in burnin:(length(times)-1)){
-        if( thetas[ZeroInds,i] == 0 && thetas[ZeroInds,i+1] == 0 ){
-          t_dirac = t_dirac + times[i+1] - times[i]
+      marg_index <- marginals[Mi]
+
+      t_in_model = 0
+      in_model <- abs(thetas[marg_index,burnin]) > eps
+      t_at_model <- if(in_model) times[burnin] else 0
+      for(i in burnin:length(times)){
+        if((abs(thetas[marg_index,i] - 1) < eps) & !(in_model)){
+          t_at_model <- times[i]
+          in_model <- TRUE
+        }
+        if(!(abs(thetas[marg_index,i] - 1) < eps) & (in_model)){
+          t_in_model <- t_in_model + (times[i] - t_at_model)
+          in_model <- FALSE
         }
       }
-      marginal_prob_inclusion[Mi] <- 1-t_dirac/(max(times)-times[burnin])
+      if(in_model){
+        t_in_model <- t_in_model + (times[i] - t_at_model)
+      }
+      marginal_prob_inclusion[Mi] <- exp(log(t_in_model) - log(max(times)-times[burnin]))
     }
     names(marginal_prob_inclusion) <- marginals
   }
   return(list(prob_mod = sort(prob_mod,decreasing = T), marginal_prob = marginal_prob_inclusion))
 }
+
 
 #' Count the number of times a model is visited
 #'

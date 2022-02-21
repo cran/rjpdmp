@@ -54,7 +54,7 @@ a <- models_visited(zigzag_fit$theta)
 
 # Work out probability of top 10 most visited models and all marginal inclusion probabilities
 # specific model probabilities become trivially small for large dimensions
-b <- model_probabilities(zigzag_fit$times, zigzag_fit$theta,
+b <- model_probabilities(zigzag_fit$times, zigzag_fit$thetas,
                          models = a[1:10,1:p], marginals=1:p)
 }
 

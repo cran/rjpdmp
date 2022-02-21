@@ -40,7 +40,7 @@
 #' set.seed(1)
 #' data <- generate.logistic.data(beta, n, solve(Siginv))
 #' ppi <- 2/p
-#'
+#'\dontrun{
 #' bps_fit <- bps_n_logit(maxTime = 1, dataX = data$dataX, datay = data$dataY,
 #'                           prior_sigma2 = 10, theta0 = rep(0, p),
 #'                           x0 = rep(0, p), ref = 0.1, rj_val = 0.6,
@@ -49,7 +49,7 @@
 #' gibbs_fit <- gibbs_logit(maxTime = 1, dataX = data$dataX, datay =data$dataY,
 #'                          prior_sigma2 = 10,beta = rep(0,p), gamma =rep(0,p),
 #'                          ppi = ppi)
-#'\dontrun{
+#'
 #' plot_pdmp(bps_fit, coords = 1:2, inds = 1:1e3,burn = .1, nsamples = 1e4,
 #'           mcmc_samples = t(gibbs_fit$beta*gibbs_fit$gamma))
 #'}
@@ -98,7 +98,7 @@ bps_n_logit <- function(maxTime, dataX, datay, prior_sigma2, x0, theta0, ref = 0
 #' data <- generate.logistic.data(beta, n, solve(Siginv))
 #' ppi <- 2/p
 #'
-#'
+#'\dontrun{
 #' bps_fit <- bps_s_logit(maxTime = 1, dataX = data$dataX, datay = data$dataY,
 #'                        prior_sigma2 = 10, theta0 = rep(0, p),
 #'                        x0 = rep(0, p), ref = 0.1, rj_val = 0.6,
@@ -107,7 +107,7 @@ bps_n_logit <- function(maxTime, dataX, datay, prior_sigma2, x0, theta0, ref = 0
 #' gibbs_fit <- gibbs_logit(maxTime = 1, dataX = data$dataX, datay =data$dataY,
 #'                          prior_sigma2 = 10,beta = rep(0,p), gamma =rep(0,p),
 #'                          ppi = ppi)
-#'\dontrun{
+#'
 #' plot_pdmp(bps_fit, coords = 1:2, inds = 1:1e4,burn = .1, nsamples = 1e4,
 #'           mcmc_samples = t(gibbs_fit$beta*gibbs_fit$gamma))
 #'}
@@ -153,13 +153,13 @@ bps_s_logit <- function(maxTime, dataX, datay, prior_sigma2, x0, theta0, ref = 0
 #' set.seed(1)
 #' data <- generate.rr.data(beta,n,diag(1,p+1), noise = 2, interc = FALSE)
 #' dataX <- data$dataX; dataY <- data$dataY
-#'
+#'\dontrun{
 #' set.seed(1)
 #' ppi_val <- 1/4
 #' res <- bps_s_rr(maxTime = 1, dataX = dataX, datay = dataY,
 #'                  prior_sigma2 = 1e2, x0 = rep(0,p+1), theta0 = rep(0,p+1),
 #'                  rj_val = 0.6, ppi = ppi_val, nmax = 1e5)
-#'\dontrun{
+#'
 #' plot_pdmp(res, coords = 1:3, inds = 1:1e3)
 #'}
 #' @export
@@ -203,13 +203,13 @@ bps_s_rr <- function(maxTime, dataX, datay, prior_sigma2, x0, theta0, ref = 0.1,
 #' set.seed(1)
 #' data <- generate.rr.data(beta,n,diag(1,p+1), noise = 2, interc = FALSE)
 #' dataX <- data$dataX; dataY <- data$dataY
-#'
+#'\dontrun{
 #' set.seed(1)
 #' ppi_val <- 1/4
 #' res <- bps_n_rr(maxTime = 1, dataX = dataX, datay = dataY,
 #'                  prior_sigma2 = 1e2, x0 = rep(0,p+1), theta0 = rep(0,p+1),
 #'                  rj_val = 0.6, ppi = ppi_val, nmax = 1e5, ref = 0.1, burn = -1)
-#'\dontrun{
+#'
 #' plot_pdmp(res, coords = 1:3, inds = 1:1e3)
 #'}
 #' @export
@@ -367,7 +367,7 @@ zigzag_logit <- function(maxTime, dataX, datay, prior_sigma2, x0, theta0, rj_val
 #' data <- generate.logistic.data(beta, n, solve(Siginv))
 #' ppi <- 2/p
 #'
-#'
+#'\dontrun{
 #' zigzag_fit <- zigzag_logit(maxTime = 1, dataX = data$dataX,
 #'                            datay = data$dataY, prior_sigma2 = 10,
 #'                            theta0 = rep(0, p), x0 = rep(0, p), rj_val = 0.6,
@@ -382,7 +382,7 @@ zigzag_logit <- function(maxTime, dataX, datay, prior_sigma2, x0, theta0, rj_val
 #' gibbs_fit <- gibbs_logit(maxTime = 1, dataX = data$dataX, datay =data$dataY,
 #'                          prior_sigma2 = 10,beta = rep(0,p), gamma =rep(0,p),
 #'                          ppi = ppi)
-#'\dontrun{
+#'
 #' plot_pdmp_multiple(list(zigzag_fit,zigzag_fit_s), coords = 1:2, burn = .1,
 #'                    inds = 1:1e2, nsamples = 1e4,
 #'                    mcmc_samples = t(gibbs_fit$beta*gibbs_fit$gamma))

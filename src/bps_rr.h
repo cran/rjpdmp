@@ -41,13 +41,13 @@
 //' set.seed(1)
 //' data <- generate.rr.data(beta,n,diag(1,p+1), noise = 2, interc = FALSE)
 //' dataX <- data$dataX; dataY <- data$dataY
-//'
+//'\dontrun{
 //' set.seed(1)
 //' ppi_val <- 1/4
 //' res <- bps_s_rr(maxTime = 1, dataX = dataX, datay = dataY,
 //'                  prior_sigma2 = 1e2, x0 = rep(0,p+1), theta0 = rep(0,p+1),
 //'                  rj_val = 0.6, ppi = ppi_val, nmax = 1e5)
-//'\dontrun{
+//'
 //' plot_pdmp(res, coords = 1:3, inds = 1:1e3)
 //'}
 //' @export
@@ -93,16 +93,12 @@ List bps_s_rr(double maxTime, const arma::mat& dataX, const arma::vec& datay,
   arma::mat Hess = dataX.t()*dataX;
   Hess.diag() += 1.0/prior_sigma2;
 
+  ab_vals(0) = arma::dot(grad_vals, theta);
+  ab_vals(1) = arma::dot(Hess*theta, theta);
+
   taus.elem(inds_off_hp) = get_hit_times(x.elem(inds_off_hp),theta.elem(inds_off_hp));
   taus.elem(inds_on_hp) = bps_MP_GaussIID_S(theta, rj_val, ppi, prior_sigma2);
-  int number_off = inds_off_hp.size();
-  if(number_off < 1){
-    taus(p) = R_PosInf;
-  } else {
-    ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
-    ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
-    taus(p) = linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
-  }
+  taus(p) = linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
   taus(p+1) = R::rexp(1)/ref;
 
   // Rcout << " as ";
@@ -220,17 +216,12 @@ List bps_s_rr(double maxTime, const arma::mat& dataX, const arma::vec& datay,
       break;
     }
 
-    number_off = inds_off_hp.size();
-    if(number_off < 1){
-      taus(p) = R_PosInf;
-    } else {
-      ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
-      ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
-      taus(p) = t + linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
-    }
+    ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
+    ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
 
     taus.elem(inds_off_hp) = t + get_hit_times(x.elem(inds_off_hp),theta.elem(inds_off_hp));
     taus.elem(inds_on_hp) = t + bps_MP_GaussIID_S(theta, rj_val, ppi, prior_sigma2);
+    taus(p) = t + linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
     taus(p+1) = t + R::rexp(1)/ref;
   }
   sk_times -= sk_times(0);
@@ -278,13 +269,13 @@ List bps_s_rr(double maxTime, const arma::mat& dataX, const arma::vec& datay,
 //' set.seed(1)
 //' data <- generate.rr.data(beta,n,diag(1,p+1), noise = 2, interc = FALSE)
 //' dataX <- data$dataX; dataY <- data$dataY
-//'
+//'\dontrun{
 //' set.seed(1)
 //' ppi_val <- 1/4
 //' res <- bps_n_rr(maxTime = 1, dataX = dataX, datay = dataY,
 //'                  prior_sigma2 = 1e2, x0 = rep(0,p+1), theta0 = rep(0,p+1),
 //'                  rj_val = 0.6, ppi = ppi_val, nmax = 1e5, ref = 0.1, burn = -1)
-//'\dontrun{
+//'
 //' plot_pdmp(res, coords = 1:3, inds = 1:1e3)
 //'}
 //' @export
@@ -328,16 +319,12 @@ List bps_n_rr(double maxTime, const arma::mat& dataX, const arma::vec& datay,
   arma::mat Hess = dataX.t()*dataX;
   Hess.diag() += 1.0/prior_sigma2;
 
+  ab_vals(0) = arma::dot(grad_vals, theta);
+  ab_vals(1) = arma::dot(Hess*theta, theta);
+
   taus.elem(inds_off_hp) = get_hit_times(x.elem(inds_off_hp),theta.elem(inds_off_hp));
   taus.elem(inds_on_hp) = bps_MP_GaussIID_N(theta, rj_val, ppi, prior_sigma2);
-  int number_off = inds_off_hp.size();
-  if(number_off < 1){
-    taus(p) = R_PosInf;
-  } else {
-    ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
-    ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
-    taus(p) = linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
-  }
+  taus(p) = linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
   taus(p+1) = R::rexp(1)/ref;
 
   // Rcout << " as ";
@@ -445,17 +432,12 @@ List bps_n_rr(double maxTime, const arma::mat& dataX, const arma::vec& datay,
       break;
     }
 
-    number_off = inds_off_hp.size();
-    if(number_off < 1){
-      taus(p) = R_PosInf;
-    } else {
-      ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
-      ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
-      taus(p) = t + linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
-    }
+    ab_vals(0) = arma::dot(grad_vals.elem(inds_off_hp), theta.elem(inds_off_hp));
+    ab_vals(1) = arma::dot(Hess(inds_off_hp,inds_off_hp)*theta.elem(inds_off_hp), theta.elem(inds_off_hp));
 
     taus.elem(inds_off_hp) = t + get_hit_times(x.elem(inds_off_hp),theta.elem(inds_off_hp));
     taus.elem(inds_on_hp) = t + bps_MP_GaussIID_N(theta, rj_val, ppi, prior_sigma2);
+    taus(p) = t + linear_inv_t(ab_vals(0),ab_vals(1),R::runif(0,1));
     taus(p+1) = t + R::rexp(1)/ref;
   }
   sk_times -= sk_times(0);

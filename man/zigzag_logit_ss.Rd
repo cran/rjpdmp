@@ -74,7 +74,7 @@ set.seed(1)
 data <- generate.logistic.data(beta, n, solve(Siginv))
 ppi <- 2/p
 
-
+\dontrun{
 zigzag_fit <- zigzag_logit(maxTime = 1, dataX = data$dataX,
                            datay = data$dataY, prior_sigma2 = 10,
                            theta0 = rep(0, p), x0 = rep(0, p), rj_val = 0.6,
@@ -89,7 +89,7 @@ zigzag_fit_s <- zigzag_logit_ss(maxTime = 1, dataX = data$dataX,
 gibbs_fit <- gibbs_logit(maxTime = 1, dataX = data$dataX, datay =data$dataY,
                          prior_sigma2 = 10,beta = rep(0,p), gamma =rep(0,p),
                          ppi = ppi)
-\dontrun{
+
 plot_pdmp_multiple(list(zigzag_fit,zigzag_fit_s), coords = 1:2, burn = .1,
                    inds = 1:1e2, nsamples = 1e4,
                    mcmc_samples = t(gibbs_fit$beta*gibbs_fit$gamma))

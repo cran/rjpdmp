@@ -5,11 +5,16 @@ rjpdmp is an R package that provides an implementation of the reversible jump PD
 Installation
 ------------
 
+The preferred install is from CRAN:
+```R
+install.packages("rjpdmp")
+```
+
 Using [devtools](https://github.com/r-lib/devtools) install with:
 
 ```R
-library(devtools)
-install_github("matt-sutton/rjpdmp")
+# library(devtools)
+# install_github("matt-sutton/rjpdmp")
 ```
 
 Example Usage (Logistic regression)

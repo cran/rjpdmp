@@ -70,13 +70,13 @@ beta <- c(0.5,0.5, rep(0,p-1))
 set.seed(1)
 data <- generate.rr.data(beta,n,diag(1,p+1), noise = 2, interc = FALSE)
 dataX <- data$dataX; dataY <- data$dataY
-
+\dontrun{
 set.seed(1)
 ppi_val <- 1/4
 res <- bps_n_rr(maxTime = 1, dataX = dataX, datay = dataY,
                  prior_sigma2 = 1e2, x0 = rep(0,p+1), theta0 = rep(0,p+1),
                  rj_val = 0.6, ppi = ppi_val, nmax = 1e5, ref = 0.1, burn = -1)
-\dontrun{
+
 plot_pdmp(res, coords = 1:3, inds = 1:1e3)
 }
 }
